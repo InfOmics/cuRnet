@@ -1,0 +1,125 @@
+TARGET := cuRnet.so
+
+HBF_DIR := hbf-d3-p2
+XLIB_DIR := ${HBF_DIR}/XLib
+SCC_DIR := parallelSCC-4k
+GRAPH_DIR := base_graph
+
+
+SUBDIR_ROOTS := ${HBF_DIR} ${XLIB_DIR} ${SCC_DIR} ${GRAPH_DIR}
+DIRS := . $(shell find $(SUBDIR_ROOTS) -type d)
+GARBAGE_PATTERNS := *.o *~ core .depend .*.cmd *.ko *.mod.c *~
+GARBAGE := $(foreach DIR,$(DIRS),$(addprefix $(DIR)/,$(GARBAGE_PATTERNS)))
+    
+
+OBJS := \
+	${XLIB_DIR}/Base/Host/src/fUtil.o\
+	${XLIB_DIR}/Base/Host/src/Timer.o\
+	${XLIB_DIR}/Graph/Host/src/readHeader.o\
+	${XLIB_DIR}/Graph/Host/src/GraphBase.o\
+	${XLIB_DIR}/Graph/Host/src/GraphDegree.o\
+	${XLIB_DIR}/Graph/Host/src/GraphDegree_Read.o\
+	${XLIB_DIR}/Graph/Host/src/GraphSTD.o\
+	${XLIB_DIR}/Graph/Host/src/GraphSTD_Read.o\
+	${XLIB_DIR}/Graph/Host/src/GraphSTD_BFS.o\
+	${XLIB_DIR}/Graph/Host/src/GraphWeight.o\
+	${XLIB_DIR}/Graph/Host/src/GraphWeight_Read.o\
+	${HBF_DIR}/src/Host/GraphSSSP.o\
+	${HBF_DIR}/src/Host/BellmanFordQueue.o\
+	${HBF_DIR}/src/Host/DijkstraSET.o\
+	${XLIB_DIR}/Base/Device/Util/src/cuda_util.o\
+	${XLIB_DIR}/Base/Device/Util/src/global_sync.o\
+	${XLIB_DIR}/Base/Device/Util/src/Timer.o\
+	${XLIB_DIR}/Graph/Device/src/cudaGraph.o\
+	${XLIB_DIR}/Graph/Device/src/cudaGraphWeight.o\
+	${HBF_DIR}/src/Device/DegreeMarker.o\
+	${HBF_DIR}/src/Device/HBFGraph.o\
+	${HBF_DIR}/src/Device/WorkEfficient.o\
+	${GRAPH_DIR}/cuRnetGraph.o\
+	${GRAPH_DIR}/base_graph.o\
+	${SCC_DIR}/cuModuleSCC.o\
+	${SCC_DIR}/cuRnetSCC.o\
+	${SCC_DIR}/Util/fUtil.o\
+	${SCC_DIR}/src/device/cudaGraph.o\
+	timer.o\
+	cuModule.o\
+	cuRnet.o
+
+
+NVCC := @CUDA_HOME@/bin/nvcc
+
+CXX_FLAGS := -std=c++11 -D__STRICT_ANSI__ -D_MWAITXINTRIN_H_INCLUDED -D_FORCE_INLINES -O2 -fPIC -Wno-aggressive-loop-optimizations
+
+CXX_INC := -I${HBF_DIR}/include/ -I${HBF_DIR}/XLib -I${HBF_DIR}/XLib/Graph -I${HBF_DIR}/XLib/Base -I${HBF_DIR}/XLib/Base/Host -I${HBF_DIR}/XLib/Base/Host/include -I${HBF_DIR}/XLib/Graph -I${HBF_DIR}/XLib/Graph/Host -I${HBF_DIR}/XLib/Graph/Host/include -I${GRAPH_DIR}
+
+SCC_CXX_INC := -I${SCC_DIR}/ -I${SCC_DIR}/Util -I${SCC_DIR}/include -I${SCC_DIR}/include/host -I${SCC_DIR}/cub-1.4.0 -I$(CURDIR)
+
+GRAPH_CXX_INC := -I${GRAPH_DIR}/ -I${GRAPH_DIR}/Util -I${GRAPH_DIR}/include -I${GRAPH_DIR}/include/host -I${GRAPH_DIR}/cub-1.4.0
+
+
+GENCODE_FLAGS := -arch=sm_@DAC_ARCH@ -DARCH=@DAC_ARCH@0 -DSM=@DAC_SM@
+
+CU_INC := -I${HBF_DIR} -I${HBF_DIR}/include -I${HBF_DIR}/cub-1.4.1 -I${HBF_DIR}/XLib -I${HBF_DIR}/XLib/Graph -I${GRAPH_DIR}/
+
+
+SCC_CU_INC := -I${SCC_DIR}/ -I${SCC_DIR}/Util -I${SCC_DIR}/include -I${SCC_DIR}/include/device -I${SCC_DIR}/cub-1.4.0 -I${SCC_DIR}/include/host -I$(CURDIR)
+
+GRAPH_CU_INC := -I${GRAPH_DIR}/ -I${GRAPH_DIR}/Util -I${GRAPH_DIR}/include -I${GRAPH_DIR}/include/device -I${GRAPH_DIR}/cub-1.4.0 -I${GRAPH_DIR}/include/host
+
+CU_FLAGS := -m64 -std=c++11 -Xcompiler=-O3,-fPIC,-march=native,-funroll-loops -w -use_fast_math -D_FORCE_INLINES -DBOOST_FOUND -DNVCC -Wno-deprecated-gpu-targets -rdc=true  $(GENCODE_FLAGS) --ptxas-options=-v -maxrregcount=32
+
+
+OS := $(shell uname -s)
+ifeq ($(OS), Darwin)
+	R_LIB="-F@R_HOME@/.. -framework R"
+else
+	R_LIB=@R_LIB@
+endif
+
+CC_PARAMS := $(CC_OPT)\
+	@CPICFLAGS@ $(MACHINE_OPT)  
+
+LD_PARAMS := -shared -lm -lpthread \
+	-Xlinker @CUDA_LIB@ -Xlinker $(R_LIB) $(MACHINE_OPT)  
+		
+
+
+$(SCC_DIR)/%.o: $(SCC_DIR)/%.cu $(RPU_INC)
+	$(NVCC) $< -dc -g -o $@ $(NVCC_OPT) $(CU_FLAGS) \
+	$(SCC_CU_INC) @CUDA_INC@ @R_INC@
+
+$(SCC_DIR)/%.o: $(SCC_DIR)/%.cpp $(RPU_INC)
+	$(CXX) $< -c -g -o $@ $(CXX_FLAGS) @CUDA_INC@ @R_INC@ $(SCC_CXX_INC)
+
+
+$(GRAPH_DIR)/%.o: $(GRAPH_DIR)/%.cu $(RPU_INC)
+	$(NVCC) $< -dc -o $@ $(NVCC_OPT) $(CU_FLAGS) \
+	$(GRAPH_CU_INC) @CUDA_INC@ @R_INC@
+
+$(GRAPH_DIR)/%.o: $(GRAPH_DIR)/%.cpp $(RPU_INC)
+	$(CXX) $< -c -g -o $@ $(CXX_FLAGS) @CUDA_INC@ @R_INC@ $(GRAPH_CXX_INC)
+
+
+%.o: %.cu $(RPU_INC)
+	$(NVCC) $*.cu -dc -o $@ $(NVCC_OPT) $(CU_FLAGS) \
+	$(CU_INC) @CUDA_INC@ @R_INC@
+
+%.o: %.cpp $(RPU_INC)
+	$(CXX) $< -c -o $@ $(CXX_FLAGS) @CUDA_INC@ @R_INC@ $(CXX_INC)
+
+
+# targets
+all: $(TARGET)
+
+$(TARGET): $(OBJS) 
+	$(NVCC) $^ -Wno-deprecated-gpu-targets -o $@ $(LD_PARAMS)
+
+#	rm -f *o
+clean: 
+	@echo -n Cleaning all files...
+	@rm -rf $(GARBAGE) && echo OK || echo KO
+
+.phony: all clean
+
+
+

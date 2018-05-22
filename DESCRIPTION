@@ -1,0 +1,16 @@
+Package: cuRnet
+Type: Package
+Title: cuRnet: an R package for graph traversing on GPU.
+Version: 0.5.2
+Date: 2017-11-11
+Author: Vincenzo Bonnici, Federico Busato, Stefano Aldegheri, Luciano Cascione, Alberto Arribas Carmena, Muodzhon Akhmedov, Francesco Bertoni, Nicola Bombieri, Ivo Kwee and Rosalba Giugno.
+Maintainer: Vincenzo Bonnici <vincenzo.bonnici@univr.it>
+Description: cuRnet provides a parallel implementaions of BFS (Breath-Firts Search), SCC (Strongly Connected Components) and SSSP (Single-Source Shortest Paths) developed on top of the CUDA framework. In future developments, more graph algorithms are planned to be included.
+License: MIT + file LICENSE
+Depends:
+        R (>= 3.1.0),
+	Rcpp
+Imports:
+        Rcpp
+LinkingTo: Rcpp
+RoxygenNote: 6.0.1
