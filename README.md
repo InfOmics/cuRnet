@@ -1,8 +1,5 @@
 # cuRnet
 > an R package for graph traversing on GPU.
-Vincenzo Bonnici, Federico Busato, Stefano Aldegheri, Luciano Cascione, Alberto Arribas Carmena, Muodzhon Akhmedov, Francesco Bertoni, Nicola Bombieri, Ivo Kwee and Rosalba Giugno.
-
-Department of Computer Science, University of Verona, Italy.
 
 ***
 
