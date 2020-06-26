@@ -112,7 +112,7 @@ $(GRAPH_DIR)/%.o: $(GRAPH_DIR)/%.cpp $(RPU_INC)
 all: $(TARGET)
 
 $(TARGET): $(OBJS) 
-	$(NVCC) $^ -Wno-deprecated-gpu-targets -o $@ $(LD_PARAMS)
+	$(NVCC) $^ -Wno-deprecated-gpu-targets -o $@ $(LD_PARAMS) $(GENCODE_FLAGS)
 
 #	rm -f *o
 clean: 

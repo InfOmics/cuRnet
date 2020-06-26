@@ -1,6 +1,7 @@
 #include "base_graph.hpp"
 #include <memory>
 #include <algorithm>
+#include <numeric>
 
 #include <iostream>
 #include <deque>
